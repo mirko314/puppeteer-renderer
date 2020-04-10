@@ -19,7 +19,11 @@ app.disable('x-powered-by')
 // Render url.
 app.use(async (req, res, next) => {
   console.log(req.query)
-  let { url, type, filename, ...options } = req.query
+  let { url, type, filename, api_key, ...options } = req.query
+
+  if (process.env.API_KEY && (!api_key || process.env.API_KEY !== api_key)) {
+    return res.status(400).send('API KEY Required')
+  }
 
   if (!url) {
     return res.status(400).send('Search with url parameter. For eaxample, ?url=http://yourdomain')
@@ -42,9 +46,10 @@ app.use(async (req, res, next) => {
             if (extDotPosition > 0) filename = filename.substring(0, extDotPosition)
           }
         }
-        if(!filename.toLowerCase().endsWith('.pdf')) {
-          filename += '.pdf';
+        if (!filename.toLowerCase().endsWith('.pdf')) {
+          filename += '.pdf'
         }
+
         const pdf = await renderer.pdf(url, options)
         res
           .set({
@@ -57,10 +62,12 @@ app.use(async (req, res, next) => {
 
       case 'screenshot':
         const { screenshotType, buffer } = await renderer.screenshot(url, options)
+        console.log('using: ', contentDisposition(filename))
         res
           .set({
             'Content-Type': `image/${screenshotType}`,
             'Content-Length': buffer.length,
+            'Content-Disposition': contentDisposition(filename),
           })
           .send(buffer)
         break
