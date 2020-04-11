@@ -71,10 +71,18 @@ class Renderer {
         height: Number(extraOptions.height || 600),
       })
 
-      const { fullPage, omitBackground, screenshotType, quality, ...restOptions } = extraOptions
+      const {
+        scale = 1.0,
+        fullPage,
+        omitBackground,
+        screenshotType,
+        quality,
+        ...restOptions
+      } = extraOptions
       const buffer = await page.screenshot({
         ...restOptions,
         type: screenshotType || 'png',
+        scale: Number(scale),
         quality:
           Number(quality) || (screenshotType === undefined || screenshotType === 'png' ? 0 : 100),
         fullPage: fullPage === 'true',
@@ -94,16 +102,23 @@ class Renderer {
   async close() {
     await this.browser.close()
   }
+
+  async recreate() {
+    console.log('recreating')
+    this.browser = await puppeteer.launch(Object.assign({ args: ['--no-sandbox'] }, options))
+  }
 }
 
 async function create(options = {}) {
+  // TODO: add options on reconnect
   const browser = await puppeteer.launch(Object.assign({ args: ['--no-sandbox'] }, options))
-
-  browser.on('disconnected', create)
-
   console.log(`Started Puppeteer with pid ${browser.process().pid}`)
-
-  return new Renderer(browser)
+  const renderer = new Renderer(browser)
+  browser.on('disconnected', () => {
+    console.log('disconnected')
+    renderer.recreate()
+  })
+  return renderer
 }
 
 module.exports = create
