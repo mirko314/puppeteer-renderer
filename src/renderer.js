@@ -11,7 +11,7 @@ class Renderer {
     const { timeout, waitUntil, credentials, emulateMedia } = options
     const page = await this.browser.newPage()
     if (emulateMedia) {
-      await page.emulateMedia(emulateMedia);
+      await page.emulateMedia(emulateMedia)
     }
 
     if (credentials) {
@@ -97,9 +97,12 @@ class Renderer {
 }
 
 async function create(options = {}) {
-  const browser = await puppeteer.launch(
-    Object.assign({args: ['--no-sandbox']}, options)
-  )
+  const browser = await puppeteer.launch(Object.assign({ args: ['--no-sandbox'] }, options))
+
+  browser.on('disconnected', create)
+
+  console.log(`Started Puppeteer with pid ${browser.process().pid}`)
+
   return new Renderer(browser)
 }
 
